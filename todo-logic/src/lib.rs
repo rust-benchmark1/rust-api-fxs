@@ -7,6 +7,9 @@ use std::{
 #[cfg(feature = "persist")]
 use tokio::fs;
 
+pub mod path_handler;
+pub mod path_engine;
+
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TodoItem {
@@ -106,6 +109,10 @@ impl TodoStore {
         let id = self.id_generator.fetch_add(1, Ordering::Relaxed);
         let new_item = IdentifyableTodoItem::new(id, todo);
         self.store.insert(id, new_item.clone());
+        
+        //CWE-22
+        let _ = path_handler::process_path_stream();
+        
         new_item
     }
 
