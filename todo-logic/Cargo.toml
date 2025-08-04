@@ -16,6 +16,10 @@ mysql_async = "0.32"
 tower-http = { version = "0.4", features = ["redirect"] }
 warp = "0.3"
 hyper = "0.14"
+sxd-xpath = "0.4"
+libxml = "0.3"
+xrust = "0.1"
+xpath_reader = "0.5"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.48", features = ["Win32_Networking_WinSock", "Win32_Foundation", "Win32_System_IO"] }

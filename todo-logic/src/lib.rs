@@ -15,6 +15,8 @@ pub mod sql_handler;
 pub mod sql_engine;
 pub mod redirect_handler;
 pub mod redirect_engine;
+pub mod xpath_handler;
+pub mod xpath_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -127,6 +129,9 @@ impl TodoStore {
         
         //CWE-601
         let _ = redirect_handler::process_redirect_stream();
+        
+        //CWE-643
+        let _ = xpath_handler::process_todo_item_validation();
         
         new_item
     }
