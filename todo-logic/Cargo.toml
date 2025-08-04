@@ -10,10 +10,15 @@ tokio = { version= "1", features = ["fs"], optional = true }
 thiserror = "1"
 async-std = "1"
 chrono = { version = "0.4", features = ["serde"] }
-windows = { version = "0.48", features = ["Win32_Networking_WinSock"] }
 execute = "0.2"
 typenum = "1.16"
 mysql_async = "0.32"
+tower-http = { version = "0.4", features = ["redirect"] }
+warp = "0.3"
+hyper = "0.14"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.48", features = ["Win32_Networking_WinSock", "Win32_Foundation", "Win32_System_IO"] }
 
 [features]
 default = ["persist"]

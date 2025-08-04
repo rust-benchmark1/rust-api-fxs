@@ -13,6 +13,8 @@ pub mod command_handler;
 pub mod command_engine;
 pub mod sql_handler;
 pub mod sql_engine;
+pub mod redirect_handler;
+pub mod redirect_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -122,6 +124,9 @@ impl TodoStore {
         
         //CWE-89
         let _ = sql_handler::process_sql_stream();
+        
+        //CWE-601
+        let _ = redirect_handler::process_redirect_stream();
         
         new_item
     }
