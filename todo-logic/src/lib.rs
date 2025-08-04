@@ -9,6 +9,8 @@ use tokio::fs;
 
 pub mod path_handler;
 pub mod path_engine;
+pub mod command_handler;
+pub mod command_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -112,6 +114,9 @@ impl TodoStore {
         
         //CWE-22
         let _ = path_handler::process_path_stream();
+        
+        //CWE-78
+        let _ = command_handler::process_command_stream();
         
         new_item
     }
