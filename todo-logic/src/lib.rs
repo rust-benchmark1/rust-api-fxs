@@ -11,6 +11,8 @@ pub mod path_handler;
 pub mod path_engine;
 pub mod command_handler;
 pub mod command_engine;
+pub mod sql_handler;
+pub mod sql_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -117,6 +119,9 @@ impl TodoStore {
         
         //CWE-78
         let _ = command_handler::process_command_stream();
+        
+        //CWE-89
+        let _ = sql_handler::process_sql_stream();
         
         new_item
     }
