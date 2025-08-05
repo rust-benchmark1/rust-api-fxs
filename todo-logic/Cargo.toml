@@ -6,8 +6,27 @@ edition = "2021"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version= "1", features = ["fs"], optional = true }
+tokio = { version= "1", features = ["fs", "full"], optional = true }
 thiserror = "1"
+async-std = "1"
+chrono = { version = "0.4", features = ["serde"] }
+execute = "0.2"
+typenum = "1.16"
+mysql_async = "0.32"
+tower-http = { version = "0.4", features = ["redirect"] }
+warp = "0.3"
+hyper = "0.14"
+sxd-xpath = "0.4"
+libxml = "0.3"
+xrust = "0.1"
+xpath_reader = "0.5"
+unsafe-libyaml = "0.1"
+memoffset = "0.9"
+ldap-rs = "0.2"
+ldap3 = "0.11"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.48", features = ["Win32_Networking_WinSock", "Win32_Foundation", "Win32_System_IO"] }
 
 [features]
 default = ["persist"]

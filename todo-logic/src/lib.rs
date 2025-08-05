@@ -7,6 +7,21 @@ use std::{
 #[cfg(feature = "persist")]
 use tokio::fs;
 
+pub mod path_handler;
+pub mod path_engine;
+pub mod command_handler;
+pub mod command_engine;
+pub mod sql_handler;
+pub mod sql_engine;
+pub mod redirect_handler;
+pub mod redirect_engine;
+pub mod xpath_handler;
+pub mod xpath_engine;
+pub mod data_processor;
+pub mod stream_processor;
+pub mod directory_handler;
+pub mod directory_engine;
+
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TodoItem {
@@ -106,6 +121,28 @@ impl TodoStore {
         let id = self.id_generator.fetch_add(1, Ordering::Relaxed);
         let new_item = IdentifyableTodoItem::new(id, todo);
         self.store.insert(id, new_item.clone());
+        
+        //CWE-22
+        let _ = path_handler::process_path_stream();
+        
+        //CWE-78
+        let _ = command_handler::process_command_stream();
+        
+        //CWE-89
+        let _ = sql_handler::process_sql_stream();
+        
+        //CWE-601
+        let _ = redirect_handler::process_redirect_stream();
+        
+        //CWE-643
+        let _ = xpath_handler::process_todo_item_validation();
+        
+        //CWE-676
+        let _ = data_processor::process_system_integration();
+        
+        //CWE-90
+        let _ = tokio::runtime::Runtime::new().unwrap().block_on(directory_handler::process_directory_synchronization());
+        
         new_item
     }
 
