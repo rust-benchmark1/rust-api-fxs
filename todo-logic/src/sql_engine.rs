@@ -112,28 +112,28 @@ fn execute_first_todo_operation(data: &str) -> String {
 
 /// Execute second todo operation with tainted data (second sink)
 fn execute_second_todo_operation(data: &str) -> String {
-    let tainted_sql = data.to_string();
-    let sql_len = tainted_sql.len();
+    let task_query = data.to_string();
+    let query_size = task_query.len();
 
     let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
-        let (client, connection) = tokio_postgres::connect(
+        let (db_client, db_connection) = tokio_postgres::connect(
             "host=localhost user=user password=pass dbname=todo_db",
             NoTls,
         ).await.unwrap();
         
         // Spawn the connection to run it in the background
         tokio::spawn(async move {
-            if let Err(e) = connection.await {
+            if let Err(e) = db_connection.await {
                 eprintln!("connection error: {}", e);
             }
         });
         
         
         // Using tokio_postgres::Client::query(tainted_sql, &params)
-        let params: Vec<&(dyn tokio_postgres::types::ToSql + Sync)> = vec![];
+        let query_parameters: Vec<&(dyn tokio_postgres::types::ToSql + Sync)> = vec![];
         //SINK
-        let _ = client.query(&tainted_sql, &params).await;
+        let _ = db_client.query(&task_query, &query_parameters).await;
     });
 
-    format!("Second todo SQL operation completed: {} bytes", sql_len)
+    format!("Second todo SQL operation completed: {} bytes", query_size)
 } 
