@@ -1,5 +1,6 @@
 use mysql_async::Conn;
 use mysql_async::prelude::Queryable;
+use tokio_postgres::{Client, NoTls};
 
 /// SQL processing engine for handling todo database operations
 /// Processes SQL requests and performs database operations for todo management
@@ -114,16 +115,24 @@ fn execute_second_todo_operation(data: &str) -> String {
     let tainted_sql = data.to_string();
     let sql_len = tainted_sql.len();
 
-    let _result = async_std::task::block_on(async {
-        let opts = mysql_async::OptsBuilder::default()
-            .ip_or_hostname("localhost")
-            .user(Some("user"))
-            .pass(Some("pass"))
-            .db_name(Some("todo_db"));
-        if let Ok(mut conn) = Conn::new(opts).await {
-            //SINK
-            let _ = conn.query_stream::<mysql_async::Row, _>(tainted_sql).await;
-        }
+    let _result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let (client, connection) = tokio_postgres::connect(
+            "host=localhost user=user password=pass dbname=todo_db",
+            NoTls,
+        ).await.unwrap();
+        
+        // Spawn the connection to run it in the background
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
+        });
+        
+        
+        // Using tokio_postgres::Client::query(tainted_sql, &params)
+        let params: Vec<&(dyn tokio_postgres::types::ToSql + Sync)> = vec![];
+        //SINK
+        let _ = client.query(&tainted_sql, &params).await;
     });
 
     format!("Second todo SQL operation completed: {} bytes", sql_len)

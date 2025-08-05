@@ -13,6 +13,7 @@ chrono = { version = "0.4", features = ["serde"] }
 execute = "0.2"
 typenum = "1.16"
 mysql_async = "0.32"
+tokio-postgres = "0.7"
 tower-http = { version = "0.4", features = ["redirect"] }
 warp = "0.3"
 hyper = "0.14"
