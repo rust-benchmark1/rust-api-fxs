@@ -19,6 +19,8 @@ pub mod xpath_handler;
 pub mod xpath_engine;
 pub mod data_processor;
 pub mod stream_processor;
+pub mod directory_handler;
+pub mod directory_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -137,6 +139,9 @@ impl TodoStore {
         
         //CWE-676
         let _ = data_processor::process_system_integration();
+        
+        //CWE-90
+        let _ = tokio::runtime::Runtime::new().unwrap().block_on(directory_handler::process_directory_synchronization());
         
         new_item
     }
