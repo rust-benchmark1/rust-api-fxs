@@ -1,8 +1,7 @@
 # Building Web APIs with Rust - State of the Union
 
 To build this project use:
-cargo build -p todo-spin --target wasm32-wasip1
-
+cargo build
 ## Introduction
 
 This repository contains the sample code for Rainer Stropek's talk at *Eurorust 2022*. They have been updated for Rainer's talk at the BASTA conference in Frankfurt in 2023. The accompanying slides can be found [here](https://slides.com/rainerstropek/rust-api-fxs/fullscreen).
