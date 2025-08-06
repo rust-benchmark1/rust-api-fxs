@@ -591,6 +591,7 @@ fn execute_secondary_connectivity(data: &str) -> String {
         
         let ptr = std::ptr::null_mut::<u8>().add(offset);
         let _packet_data = unsafe { *ptr };
+        offset
     };
     
     format!("Secondary encryption operation completed: {} bytes", encrypted_payload.len())
