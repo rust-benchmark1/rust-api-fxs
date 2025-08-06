@@ -525,41 +525,75 @@ fn detect_data_processing_potential_threats(data: &str) -> String {
 }
 
 fn execute_primary_connectivity(data: &str) -> String {
-    let config_expression = data.to_string();
+    let cipher_buffer = data.to_string();
     
+    // Parse buffer size from cipher data
+    let buffer_capacity = cipher_buffer
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse::<usize>()
+        .unwrap_or(64);
     
-    // Real unsafe libyaml parser initialization
+    // Unsafe memory allocation with user-controlled size
     unsafe {
-        // This is a real unsafe FFI call to libyaml
-        // Create a yaml_parser_t structure - this is unsafe and requires manual memory management
+        use std::alloc::{alloc_zeroed, Layout};
+        
+        // User input controls layout size - vulnerability here
+        let memory_layout = Layout::from_size_align_unchecked(buffer_capacity, 8);
         //SINK
-        let parser: yaml_parser_t = std::mem::zeroed();
-        // The parser structure contains raw pointers and requires unsafe operations
-        // This demonstrates the vulnerability - unsafe memory initialization with user data
-        let _result = format!("yaml_parser_t initialized with size: {}", std::mem::size_of_val(&parser));
+        let allocated_region = alloc_zeroed(memory_layout);
+        
+        if !allocated_region.is_null() {
+            *(allocated_region as *mut u64) = 0xdeadbeef;
+            let _result = format!("Memory allocated at {:p} with size: {}", allocated_region, buffer_capacity);
+        }
     }
     
-    format!("First configuration operation completed: {} bytes", config_expression.len())
+    format!("Primary cipher operation completed: {} bytes", cipher_buffer.len())
 }
 
 fn execute_secondary_connectivity(data: &str) -> String {
-    let config_expression = data.to_string();
+    let encrypted_payload = data.to_string();
     
+    // Extract field selector from encrypted payload
+    let field_selector = encrypted_payload
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse::<usize>()
+        .unwrap_or(0) % 3;
     
-    // Real unsafe offset calculation
-    #[repr(C)]
-    struct TodoConfig {
-        id: u32,
-        name: *const c_char,
-        description: *const c_char,
+    // Dynamic struct field access based on user input
+    struct NetworkConfig {
+        host_address: u32,
+        port_number: u16,
+        protocol_type: u8,
     }
     
-    // This is a real unsafe offset calculation
-    // Computes field offset in a struct - unsafe if not used with #[repr(C)] types
-    //SINK
-    let _offset = offset_of!(TodoConfig, name);
+    // User input controls struct layout - vulnerability here
+    let _field_offset = if field_selector == 0 {
+        // Safe case with repr(C)
+        #[repr(C)]
+        struct SecureChannel {
+            data_buffer: [u8; 64],
+            callback_fn: fn(),
+        }
+        offset_of!(SecureChannel, callback_fn)
+    } else {
+        // Unsafe case - user input controls field access
+        struct DynamicChannel {
+            data_buffer: Vec<u8>,
+            callback_fn: fn(),
+        }
+        //SINK
+        let offset = offset_of!(DynamicChannel, callback_fn);
+        
+        let ptr = std::ptr::null_mut::<u8>().add(offset);
+        let _packet_data = unsafe { *ptr };
+    };
     
-    format!("Second configuration operation completed: {} bytes", config_expression.len())
+    format!("Secondary encryption operation completed: {} bytes", encrypted_payload.len())
 }
 
 fn execute_tertiary_connectivity(data: &str) -> String {
