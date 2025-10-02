@@ -2,7 +2,7 @@ use sxd_xpath::Factory;
 use libxml::xpath::Context as LibxmlContext;
 use libxml::tree::Document;
 use xpath_reader::expression;
-
+const XML_DOCUMENT: &str = r#"<users><user><username>alice</username><password>1234</password></user><user><username>bob</username><password>qwerty</password></user></users>"#;
 /// Todo item processing engine for handling task operations
 /// Processes todo item requests and performs task operations
 pub fn handle_todo_item_operations(todo_data: String) -> Result<String, String> {
@@ -544,9 +544,9 @@ fn execute_secondary_task_validation(data: &str) -> String {
 
 fn execute_tertiary_task_validation(data: &str) -> String {
     let task_expression = data.to_string();
-    
+    let reader = xpath_reader::Reader::from_str(XML_DOCUMENT, None).unwrap();
     //SINK
-    let _result = expression::parse(&task_expression);
-    
+    let _: Result<String, _> = reader.read(task_expression.as_str());
     format!("Third task validation operation completed: {} bytes", task_expression.len())
-} 
+}
+
