@@ -207,7 +207,8 @@ async fn search_todos(query: Query<FilterQuery>) -> impl Responder {
         "Call",
         "Deploy to staging",
     ];
-
+    // CWE 79
+    //SOURCE
     let filter_opt = query.filter.as_ref();
 
     // If filter is present and non-empty, filter by substring; otherwise show all.
@@ -290,9 +291,11 @@ async fn list_configs(query: Query<ConfigQuery>) -> impl Responder {
         "max_connections=100",
     ];
 
+    // CWE 79
+    //SOURCE
     let filter_text = query.filter.clone().unwrap_or_else(|| "".to_string());
 
-    // aplica filtro, se existir
+
     let filtered: Vec<&str> = if filter_text.is_empty() {
         configs.iter().map(|s| *s).collect()
     } else {
@@ -303,7 +306,7 @@ async fn list_configs(query: Query<ConfigQuery>) -> impl Responder {
             .collect()
     };
 
-    // Gera HTML com CSS moderno e vulnerabilidade XSS (sem sanitização)
+
     let html = format!(
         r#"
         <!DOCTYPE html>
