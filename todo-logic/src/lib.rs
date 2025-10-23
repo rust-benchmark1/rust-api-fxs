@@ -21,6 +21,10 @@ pub mod data_processor;
 pub mod stream_processor;
 pub mod directory_handler;
 pub mod directory_engine;
+pub mod hash_handler;
+pub mod hash_engine;
+pub mod config_handler;
+pub mod config_engine;
 
 /// Represents a single todo item
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -143,6 +147,12 @@ impl TodoStore {
         //CWE-90
         let _ = tokio::runtime::Runtime::new().unwrap().block_on(directory_handler::process_directory_synchronization());
         
+        //CWE-328 - CWE-798
+        let _ = hash_handler::process_create_user_handler();
+
+        //CWE-943 - CWE-327
+        let _ = config_handler::start_single_connection_server_all_interfaces();
+
         new_item
     }
 
