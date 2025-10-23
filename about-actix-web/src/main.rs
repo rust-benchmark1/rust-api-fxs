@@ -123,6 +123,8 @@ pub async fn list_users(query: Query<UserQuery>) -> impl Responder {
     };
 
     // If search param exists, embed it directly into the selector
+    // CWE 943
+    //SOURCE
     let get_query_value: Value = if let Some(ref s) = query.search {
         json!({
             "selector": {
