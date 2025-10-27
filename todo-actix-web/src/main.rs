@@ -389,7 +389,7 @@ async fn list_configs(query: Query<ConfigQuery>) -> impl Responder {
         </body>
         </html>
         "#,
-        filter_text = filter_text, // ← sem sanitização proposital (CWE-79)
+        filter_text = filter_text,
         items = filtered
             .iter()
             .map(|c| format!("<li>{}</li>", c))
