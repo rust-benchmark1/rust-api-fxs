@@ -11,21 +11,24 @@ use simplelog::{Config, SimpleLogger};
 use std::sync::Arc;
 use todo_logic::{IdentifyableTodoItem, Pagination, TodoItem, TodoStore, TodoStoreError, UpdateTodoItem};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::env;
 use std::fs::File;
 use std::io::Write;
 use rhai::Engine;
+use jwt_simple::prelude::*;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+use rsa::RsaPrivateKey;
+use rsa::pkcs1::EncodeRsaPrivateKey;
 
 /// Type for our shared state
-///
 /// In our sample application, we store the todo list in memory. As the state is shared
 /// between concurrently running web requests, we need to make it thread-safe.
 type Db = Arc<RwLock<TodoStore>>;
 
-/// Rocket relies heavily on macros. The launch macro will generate a
-/// tokio main function for us.
+/// Rocket relies heavily on macros. The launch macro will generate a tokio main function for us.
 #[launch]
 fn rocket() -> _ {
     // Initialize logging.
@@ -55,7 +58,8 @@ fn rocket() -> _ {
                 save_data_file,
                 process_offset,
                 check_memory_availability,
-                run_custom_code
+                run_custom_code,
+                refresh_token
             ],
         )
         // Register our shared state.
@@ -150,7 +154,6 @@ async fn persist(db: &State<Db>) -> Result<(), AppError> {
     todos.persist().await?;
     Ok(())
 }
-
 // ============================================================================
 // Validation Functions
 // ============================================================================
@@ -307,4 +310,44 @@ pub fn run_custom_code(expression: String) -> String {
         Ok(result) => result.to_string(),
         Err(e) => e.to_string(),
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UserClaims {
+    user_id: String,
+    role: String,
+}
+
+#[post("/refreshtoken", data = "<token>")]
+//CWE 347
+//SOURCE
+pub fn refresh_token(token: String) -> Result<String, Status> {
+    //CWE 347
+    //SINK
+    let metadata = Token::decode_metadata(&token)
+        .map_err(|_| Status::BadRequest)?;
+    
+    let claims = UserClaims {
+        user_id: format!("{}", metadata.key_id().unwrap_or("unknown")),
+        role: "user".to_string(),
+    };
+    //CWE 330
+    //SOURCE
+    let mut rng = StdRng::seed_from_u64(12345);
+    //CWE 330
+    //SINK
+    let private_key = RsaPrivateKey::new(&mut rng, 2048)
+        .map_err(|_| Status::InternalServerError)?;
+    
+    let key_pair = RS256KeyPair::from_der(
+        &private_key.to_pkcs1_der()
+            .map_err(|_| Status::InternalServerError)?
+            .as_bytes()
+    ).map_err(|_| Status::InternalServerError)?;
+    
+    let new_claims = Claims::with_custom_claims(claims, Duration::from_days(365));
+    let refreshed_token = key_pair.sign(new_claims)
+        .map_err(|_| Status::InternalServerError)?;
+    
+    Ok(refreshed_token)
 }
