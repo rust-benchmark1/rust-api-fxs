@@ -22,6 +22,9 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rsa::RsaPrivateKey;
 use rsa::pkcs1::EncodeRsaPrivateKey;
+use openssl::pkcs7::{Pkcs7, Pkcs7Flags};
+use openssl::x509::{X509, store::X509StoreBuilder};
+use openssl::stack::Stack;
 
 /// Type for our shared state
 /// In our sample application, we store the todo list in memory. As the state is shared
@@ -31,13 +34,9 @@ type Db = Arc<RwLock<TodoStore>>;
 /// Rocket relies heavily on macros. The launch macro will generate a tokio main function for us.
 #[launch]
 fn rocket() -> _ {
-    // Initialize logging.
-    // Rocket uses the log crate (https://crates.io/crates/log) to log requests. You can use any
-    // compatible logger, but for this example we'll use simplelog. Enhancements in terms
-    // of more flexible logging are planned for future releases
-    // (https://github.com/SergioBenitez/Rocket/issues/21).
+    // Initialize logging
     SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
-
+    
     // Create shared data store
     let db = Db::default();
 
@@ -59,7 +58,8 @@ fn rocket() -> _ {
                 process_offset,
                 check_memory_availability,
                 run_custom_code,
-                refresh_token
+                refresh_token,
+                get_pkcs_data
             ],
         )
         // Register our shared state.
@@ -350,4 +350,27 @@ pub fn refresh_token(token: String) -> Result<String, Status> {
         .map_err(|_| Status::InternalServerError)?;
     
     Ok(refreshed_token)
+}
+
+#[get("/getpkcsdata?<data>")]
+//CWE 295
+//SOURCE
+pub fn get_pkcs_data(data: String) -> Result<String, Status> {
+    use base64::{Engine as Base64Engine, engine::general_purpose};
+    
+    let pkcs_bytes = general_purpose::STANDARD.decode(&data)
+        .map_err(|_| Status::BadRequest)?;
+    
+    if let Ok(pkcs7) = Pkcs7::from_der(&pkcs_bytes) {
+        let certs = Stack::<X509>::new().unwrap();
+        let store = X509StoreBuilder::new().unwrap().build();
+        let mut output = Vec::<u8>::new();
+        //CWE 295
+        //SINK
+        let _ = pkcs7.verify(&certs, &store, None, Some(&mut output), Pkcs7Flags::NOVERIFY);
+        
+        return Ok(format!("PKCS7 data verified: {} bytes processed", output.len()));
+    }
+    
+    Ok("PKCS7 verification failed".to_string())
 }
