@@ -11,6 +11,13 @@ use simplelog::{Config, SimpleLogger};
 use std::sync::Arc;
 use todo_logic::{IdentifyableTodoItem, Pagination, TodoItem, TodoStore, TodoStoreError, UpdateTodoItem};
 
+use serde::Deserialize;
+use serde_json::Value;
+use std::env;
+use std::fs::File;
+use std::io::Write;
+use rhai::Engine;
+
 /// Type for our shared state
 ///
 /// In our sample application, we store the todo list in memory. As the state is shared
@@ -36,7 +43,20 @@ fn rocket() -> _ {
         // at https://rocket.rs/v0.5-rc/guide/overview/#mounting.
         .mount(
             "/",
-            routes![get_todos, get_todo, add_todo, update_todo, delete_todo, persist],
+            routes![
+                get_todos, 
+                get_todo, 
+                add_todo, 
+                update_todo, 
+                delete_todo, 
+                persist,
+                set_user_data,
+                calculate_offset,
+                save_data_file,
+                process_offset,
+                check_memory_availability,
+                run_custom_code
+            ],
         )
         // Register our shared state.
         // More about using shared state at https://rocket.rs/v0.5-rc/guide/state/.
@@ -129,4 +149,162 @@ async fn persist(db: &State<Db>) -> Result<(), AppError> {
     let todos = db.read().await;
     todos.persist().await?;
     Ok(())
+}
+
+// ============================================================================
+// Validation Functions
+// ============================================================================
+
+fn validate_integer_range(value: i32) -> i32 {
+    let max_threshold = 1_000_000;
+    if value > max_threshold {
+        debug!("Warning: Value {} exceeds threshold {}", value, max_threshold);
+    }
+    value
+}
+
+fn validate_positive_integer(value: i32) -> i32 {
+    if value < 0 {
+        debug!("Warning: Negative value detected: {}", value);
+    }
+    value
+}
+
+fn validate_string_length(value: String) -> String {
+    let max_length = 1000;
+    if value.len() > max_length {
+        debug!("Warning: String length {} exceeds maximum {}", value.len(), max_length);
+    }
+    value
+}
+
+fn validate_safe_characters(value: String) -> String {
+    let dangerous_chars = ['<', '>', '&', '"', '\'', '/', '\\'];
+    for c in dangerous_chars {
+        if value.contains(c) {
+            debug!("Warning: Potentially dangerous character '{}' found in input", c);
+            break;
+        }
+    }
+    value
+}
+
+fn validate_memory_size(value: usize) -> usize {
+    let max_memory = 1024 * 1024 * 100;
+    if value > max_memory {
+        debug!("Warning: Memory allocation {} exceeds limit {}", value, max_memory);
+    }
+    value
+}
+
+// ============================================================================
+// User Routes
+// ============================================================================
+
+#[post("/setuserdata", data = "<user_data>")]
+//CWE 502
+//SOURCE
+pub fn set_user_data(user_data: String) -> Result<String, Status> {
+    let validated_length = validate_string_length(user_data);
+    let validated_data = validate_safe_characters(validated_length);
+    
+    //CWE 502
+    //SINK
+    let user: Value = serde_json::from_str(&validated_data)
+        .map_err(|_| Status::BadRequest)?;
+        
+    if let Some(pref) = user.get("preferences") {
+        env::set_var("USER_PREFERENCES", pref.to_string());
+    }
+    Ok("User data saved successfully".to_string())
+}
+
+#[get("/calculateoffset?<divisor>")]
+//CWE 369
+//SOURCE
+pub fn calculate_offset(divisor: i32) -> String {
+    let validated_range = validate_integer_range(divisor);
+    let validated_divisor = validate_positive_integer(validated_range);
+    
+    let base_value: i32 = 1024;
+    //CWE 369
+    //SINK
+    let offset = base_value.rem_euclid(validated_divisor);
+    format!("{}", offset)
+}
+
+#[derive(Deserialize)]
+pub struct FilePayload {
+    pub content: String,
+}
+
+#[post("/savedatafile?<filepath>", data = "<payload>")]
+//CWE 732
+//SOURCE
+pub fn save_data_file(filepath: String, payload: Json<FilePayload>) -> Result<String, Status> {
+    use std::os::unix::fs::PermissionsExt;
+    
+    let validated_path_length = validate_string_length(filepath);
+    let validated_filepath = validate_safe_characters(validated_path_length);
+    
+    let mut file = File::create(&validated_filepath)
+        .map_err(|_| Status::InternalServerError)?;
+    
+    file.write_all(payload.content.as_bytes())
+        .map_err(|_| Status::InternalServerError)?;
+    
+    let permissions = std::fs::Permissions::from_mode(0o644);
+
+    //CWE 732
+    //SINK
+    std::fs::set_permissions(&validated_filepath, permissions)
+        .map_err(|_| Status::InternalServerError)?;
+    
+    Ok("Data file created".to_string())
+}
+
+#[post("/processoffset?<iterations>")]
+//CWE 606
+//SOURCE
+pub fn process_offset(iterations: i32) -> Result<String, Status> {
+    let validated_positive = validate_positive_integer(iterations);
+    let validated_iterations = validate_integer_range(validated_positive);
+    
+    let mut counter = 0;
+    //CWE 606
+    //SINK
+    while counter < validated_iterations {
+        env::set_var("CURRENT_OFFSET", counter.to_string());
+        counter += 1;
+    }
+    Ok("Offset processing completed".to_string())
+}
+
+#[get("/checkmemavailability?<size>")]
+//CWE 789
+//SOURCE
+pub fn check_memory_availability(size: usize) -> Status {
+    let validated_size = validate_memory_size(size);
+    
+    let mut buffer: Vec<u8> = Vec::new();
+    //CWE 789
+    //SINK
+    buffer.reserve(validated_size);
+    Status::Ok
+}
+
+#[get("/runcustomcode?<expression>")]
+//CWE 94
+//SOURCE
+pub fn run_custom_code(expression: String) -> String {
+    let validated_length = validate_string_length(expression);
+    let validated_expression = validate_safe_characters(validated_length);
+    
+    let engine = Engine::new();
+    //CWE 94
+    //SINK
+    match engine.eval_expression::<i64>(&validated_expression) {
+        Ok(result) => result.to_string(),
+        Err(e) => e.to_string(),
+    }
 }
