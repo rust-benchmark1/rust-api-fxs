@@ -54,8 +54,8 @@ fn execute_first_redirect_operation(data: &str) -> String {
 
     if let Ok(uri) = tainted_uri.parse::<warp::http::Uri>() {
         // SINK
-        let _redirect: tower_http::services::redirect::Redirect<hyper::Body> =
-            Redirect::with_status_code(warp::http::StatusCode::FOUND, uri);
+        let _redirect: tower_http::services::redirect::Redirect<hyper::Body> = Redirect::with_status_code(warp::http::StatusCode::FOUND, uri);
+
     }
 
     format!(
